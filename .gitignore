@@ -1,0 +1,20 @@
+# Pastas Temporárias e de Compilação
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+
+# Arquivos da IDE (Visual Studio / Rider / VS Code)
+.vs/
+.idea/
+.vscode/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# Executáveis / Plugins temporários
+/*.target.cs
