@@ -67,6 +67,8 @@ void ABaseCharacter::BeginPlay()
 			}
 		}
 	}
+	
+	InitializeAttributes();
 }
 
 UAbilitySystemComponent* ABaseCharacter::GetAbilitySystemComponent() const
@@ -138,6 +140,15 @@ void ABaseCharacter::Look(const FInputActionValue& Value)
 		
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void ABaseCharacter::InitializeAttributes()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (ASC && DefaultAttributesDataTable)
+	{
+		ASC->InitStats(UCharacterStatsAttributeSet::StaticClass(), DefaultAttributesDataTable);
 	}
 }
 

@@ -9,6 +9,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "EnhancedInputSubsystems.h"
+#include "AttributeSets/CharacterStatsAttributeSet.h"
 #include "Common/EnhancedInputRouter.h"
 #include "Common/GameplayTaggedInputAction.h"
 #include "BaseCharacter.generated.h"
@@ -38,6 +39,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
+	UFUNCTION()
 	void ApplyDefaultAbilitiesEffect() const;
 	
 	UPROPERTY(BlueprintReadOnly)
@@ -49,9 +51,17 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void HandleGameplayEvent(const FGameplayTag Tag) const;
 	
+	UFUNCTION()
 	virtual void Move(const FInputActionValue& Value);
 	
+	UFUNCTION()
 	virtual void Look(const FInputActionValue& Value);
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Attributes|Defaults")
+	class UDataTable* DefaultAttributesDataTable;
+	
+	UFUNCTION()
+	virtual void InitializeAttributes();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|Init")
