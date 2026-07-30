@@ -15,13 +15,19 @@ void UDashAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
 	ABaseCharacter* Character = Cast<ABaseCharacter>(ActorInfo->AvatarActor);
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	
 	if (!Character)
 	{
 		UE_LOG(LogGameplayTags, Warning, TEXT("Character not founded!"));
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
 	
