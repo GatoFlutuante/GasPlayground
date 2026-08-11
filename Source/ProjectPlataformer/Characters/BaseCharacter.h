@@ -43,7 +43,7 @@ public:
 	void ApplyDefaultAbilitiesEffect() const;
 	
 	UPROPERTY(BlueprintReadOnly)
-	UEnhancedInputRouter* InputRouter;
+	TObjectPtr<UEnhancedInputRouter> InputRouter;
 	
 	UFUNCTION(BlueprintCallable)
 	void HandleInputGameplayEvent(UGameplayTaggedInputAction* TaggedInputAction);
@@ -80,6 +80,8 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 	
 	virtual void OnRep_PlayerState() override;
+
+	void InitializeAbilitySystemActorInfo();
 	
 private:
 	UPROPERTY(VisibleAnywhere, Category="Camera")

@@ -14,7 +14,10 @@ void UEnhancedInputRouter::UnbindByHandle(const FDelegateHandle HandleToRemove)
 void UEnhancedInputRouter::UnbindByHandle(const UInputAction* Action, const ETriggerEvent TriggerEvent, const FDelegateHandle HandleToRemove)
 {
 	const TUniquePtr<FRoutedInputActionValueDelegate>* DelegatePtr = RoutedDelegates.Find({Action, TriggerEvent}); 
-	(*DelegatePtr)->Remove(HandleToRemove);
+	if (DelegatePtr && DelegatePtr->IsValid())
+	{
+		(*DelegatePtr)->Remove(HandleToRemove);
+	}
 }
 
 void UEnhancedInputRouter::HandleRoutedInput(const FInputActionValue& Value, const UInputAction* Action, const ETriggerEvent TriggerEvent)

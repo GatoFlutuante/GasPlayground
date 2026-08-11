@@ -16,6 +16,11 @@ void USprintAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	
 	ABaseCharacter* Character = Cast<ABaseCharacter>(ActorInfo->AvatarActor);
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!Character || !Character->InputRouter || !ASC || !TriggerEventData)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	
 	FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
@@ -24,10 +29,17 @@ void USprintAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	if (!SpecHandle.IsValid())
 	{
 		EndAbility();
+		return;
 	}
 	ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	
 	const UGameplayTaggedInputAction* SprintAction = Cast<UGameplayTaggedInputAction>(TriggerEventData->OptionalObject);
+	if (!SprintAction)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
 	CompletedBindingHandle = Character->InputRouter->BindAction(SprintAction, ETriggerEvent::Completed, 
 		this, &USprintAbility::EndAbility);
 }
@@ -41,7 +53,15 @@ void USprintAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const F
                                 const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+
+	if (ABaseCharacter* Character = Cast<ABaseCharacter>(ActorInfo->AvatarActor))
+	{
+		Character->InputRouter->UnbindByHandle(CompletedBindingHandle);
+	}
 	
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-	ASC->RemoveActiveGameplayEffectBySourceEffect(SprintGameplayEffect, ASC, -1);
+	if (ASC && SprintGameplayEffect)
+	{
+		ASC->RemoveActiveGameplayEffectBySourceEffect(SprintGameplayEffect, ASC, -1);
+	}
 }
