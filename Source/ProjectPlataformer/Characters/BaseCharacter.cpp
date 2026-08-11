@@ -45,7 +45,9 @@ void ABaseCharacter::BeginPlay()
 	
 	if (InputRouter == nullptr)
 	{
-		InputRouter = NewObject<UEnhancedInputRouter>();
+		// Keep the router owned by the character. A transient UObject without an
+		// outer can be collected while the character is still using its bindings.
+		InputRouter = NewObject<UEnhancedInputRouter>(this);
 	}
 
 	for (const auto Pair : AbilityTriggerActions)
@@ -68,7 +70,22 @@ void ABaseCharacter::BeginPlay()
 		}
 	}
 	
-	InitializeAttributes();
+	InitializeAbilitySystemActorInfo();
+}
+
+void ABaseCharacter::InitializeAbilitySystemActorInfo()
+{
+	if (ABasePlayerState* PS = GetPlayerState<ABasePlayerState>())
+	{
+		if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+		{
+			// This is intentionally safe to call from BeginPlay, PossessedBy and
+			// OnRep_PlayerState. PlayerState and possession do not arrive in a
+			// guaranteed order on client and listen-server startup.
+			ASC->InitAbilityActorInfo(PS, this);
+			InitializeAttributes();
+		}
+	}
 }
 
 UAbilitySystemComponent* ABaseCharacter::GetAbilitySystemComponent() const
@@ -107,12 +124,22 @@ void ABaseCharacter::HandleInputGameplayEvent(UGameplayTaggedInputAction* Tagged
 	FGameplayEventData Payload = FGameplayEventData();
 	Payload.OptionalObject = TaggedInputAction;
 
-	GetAbilitySystemComponent()->HandleGameplayEvent(TaggedInputAction->InputTag, &Payload);
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->HandleGameplayEvent(TaggedInputAction->InputTag, &Payload);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Ignoring ability input: AbilitySystemComponent is not initialized yet."));
+	}
 }
 void ABaseCharacter::HandleGameplayEvent(const FGameplayTag Tag) const
 {
 	const FGameplayEventData Payload = FGameplayEventData();
-	GetAbilitySystemComponent()->HandleGameplayEvent(Tag, &Payload);
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->HandleGameplayEvent(Tag, &Payload);
+	}
 }
 
 void ABaseCharacter::Move(const FInputActionValue& Value)
@@ -138,8 +165,8 @@ void ABaseCharacter::Look(const FInputActionValue& Value)
 	{
 		const FVector2D LookAxisVector = Value.Get<FVector2D>();
 		
-		AddControllerYawInput(LookAxisVector.X);
-		AddControllerPitchInput(LookAxisVector.Y);
+		AddControllerYawInput(LookAxisVector.X * 5.0f);
+		AddControllerPitchInput(LookAxisVector.Y * 5.0f);
 	}
 }
 
@@ -149,6 +176,7 @@ void ABaseCharacter::InitializeAttributes()
 	if (ASC && DefaultAttributesDataTable)
 	{
 		ASC->InitStats(UCharacterStatsAttributeSet::StaticClass(), DefaultAttributesDataTable);
+		GetCharacterMovement()->MaxWalkSpeed = ASC->GetNumericAttribute(UCharacterStatsAttributeSet::GetGroundSpeedAttribute());
 	}
 }
 
@@ -161,18 +189,30 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 		for (const auto Pair : AbilityTriggerActions)
 		{
 			const UGameplayTaggedInputAction* Action = Pair.Key;
+
+			if (!Action)
+			{
+				continue;
+			}
 			
 			for (uint8 i = 0; i < FTriggerEventFlags::Count; i++)
 			{
+				// Bind every state here. Ability instances can add runtime bindings
+				// (for example Sprint uses Completed to detect key release), even when
+				// the action is configured to activate the ability on Started.
 				const ETriggerEvent TriggerEvent = static_cast<ETriggerEvent>(1 << i);
-				
-				EnhancedInputComponent->BindAction(
-					Action, 
-					TriggerEvent, 
-					InputRouter, 
-					&UEnhancedInputRouter::HandleRoutedInput, 
-					static_cast<const UInputAction*>(Action), 
-					TriggerEvent
+				const UInputAction* InputAction = static_cast<const UInputAction*>(Action);
+
+				EnhancedInputComponent->BindActionValueLambda(
+					InputAction,
+					TriggerEvent,
+					[this, InputAction, TriggerEvent](const FInputActionValue& Value)
+					{
+						if (InputRouter)
+						{
+							InputRouter->HandleRoutedInput(Value, InputAction, TriggerEvent);
+						}
+					}
 				);
 			}
 		}
@@ -183,12 +223,8 @@ void ABaseCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	if (ABasePlayerState* PS = GetPlayerState<ABasePlayerState>())
-	{
-		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
-		
-		ApplyDefaultAbilitiesEffect();
-	}
+	InitializeAbilitySystemActorInfo();
+	ApplyDefaultAbilitiesEffect();
 	
 	if (APlayerController* PC = Cast<APlayerController>(NewController))
 	{
@@ -210,6 +246,6 @@ void ABaseCharacter::OnRep_PlayerState()
 
 	if (ABasePlayerState* PS = GetPlayerState<ABasePlayerState>())
 	{
-		PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
+		InitializeAbilitySystemActorInfo();
 	}
 }
