@@ -37,6 +37,9 @@ ABaseCharacter::ABaseCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	
+	
+	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
 }
 
 void ABaseCharacter::BeginPlay()
@@ -92,6 +95,11 @@ UAbilitySystemComponent* ABaseCharacter::GetAbilitySystemComponent() const
 {
 	const ABasePlayerState* PS = GetPlayerState<ABasePlayerState>();
 	return PS? PS->GetAbilitySystemComponent() : nullptr;
+}
+
+UEquipmentComponent* ABaseCharacter::GetEquipmentComponent() const
+{
+	return EquipmentComponent;
 }
 
 void ABaseCharacter::ApplyDefaultAbilitiesEffect() const
