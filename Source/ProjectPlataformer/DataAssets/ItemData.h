@@ -20,4 +20,6 @@ public:
 	FName AttachSocketName;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")
 	TSubclassOf<UGameplayEffect> ItemGameplayEffect;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item|Animations")
+	TArray<TObjectPtr<UAnimMontage>> ItemAnimations;
 };

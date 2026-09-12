@@ -15,15 +15,18 @@ class PROJECTPLATAFORMER_API UEquipmentComponent : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UEquipmentComponent();
+	
+	virtual void BeginPlay() override;
 
 protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category="Equipment")
-	FName CurrentEquippedItemID;
-	UPROPERTY(BlueprintReadOnly, Category="Equipment")
 	TObjectPtr<USkeletalMeshComponent> EquippedItemMesh;
 	
 public:
+	UPROPERTY(BlueprintReadOnly, Category="Equipment")
+	FName CurrentEquippedItemID;
+	
 	UFUNCTION(BlueprintCallable, Category="Equipment")
 	virtual void EquipItem(FName ItemID);
 	UFUNCTION(BlueprintCallable, Category="Equipment")

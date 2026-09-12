@@ -15,6 +15,16 @@ UEquipmentComponent::UEquipmentComponent()
 
 }
 
+void UEquipmentComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (CurrentEquippedItemID == NAME_None)
+	{
+		EquipItem("DefaultMelee");
+	}
+}
+
 void UEquipmentComponent::EquipItem(FName ItemID)
 {
 	UGameInstance* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
@@ -43,6 +53,11 @@ void UEquipmentComponent::EquipItem(FName ItemID)
 		return;
 	}
 	
+	if (ItemID == CurrentEquippedItemID)
+	{
+		EquipItem("DefaultMelee");
+		return;
+	}
 	if (CurrentEquippedItemID != NAME_None)
 	{
 		UnequipItem();
