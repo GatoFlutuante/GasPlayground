@@ -20,7 +20,8 @@ public class ProjectPlataformer : ModuleRules
 			"EnhancedInput",
 			"GameplayAbilities",
 			"GameplayTags", 
-			"GameplayTasks"
+			"GameplayTasks",
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

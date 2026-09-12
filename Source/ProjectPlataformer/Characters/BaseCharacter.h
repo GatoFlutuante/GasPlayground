@@ -12,6 +12,7 @@
 #include "AttributeSets/CharacterStatsAttributeSet.h"
 #include "Common/EnhancedInputRouter.h"
 #include "Common/GameplayTaggedInputAction.h"
+#include "Components/EquipmentComponent.h"
 #include "BaseCharacter.generated.h"
 
 
@@ -39,6 +40,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
+	UFUNCTION(BlueprintCallable)
+	virtual UEquipmentComponent* GetEquipmentComponent() const;
+	
 	UFUNCTION()
 	void ApplyDefaultAbilitiesEffect() const;
 	
@@ -64,6 +68,9 @@ public:
 	virtual void InitializeAttributes();
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="EquipmentComponent")
+	TObjectPtr<UEquipmentComponent> EquipmentComponent;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities|Init")
 	TSubclassOf<class UGameplayEffect> DefaultAbilitiesEffect;
 	
