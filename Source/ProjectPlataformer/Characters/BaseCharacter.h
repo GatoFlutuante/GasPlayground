@@ -62,7 +62,7 @@ public:
 	virtual void Look(const FInputActionValue& Value);
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Attributes|Defaults")
-	class UDataTable* DefaultAttributesDataTable;
+	TMap<TSubclassOf<UAttributeSet>, UDataTable*> DefaultAttributesDataTables;
 	
 	UFUNCTION()
 	virtual void InitializeAttributes();
