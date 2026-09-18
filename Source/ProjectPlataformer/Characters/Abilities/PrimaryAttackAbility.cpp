@@ -10,12 +10,15 @@
 #include "Characters/BaseCharacter.h"
 #include "Characters/Components/EquipmentComponent.h"
 #include "Containers/Deque.h"
+#include "DataAssets/ItemWeaponData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Subsystems/EquipmentSubsystem.h"
 
 UPrimaryAttackAbility::UPrimaryAttackAbility()
 {
 	HitEventTag = FGameplayTag::RequestGameplayTag(FName("Project.Character.Abilities.Melee.Hit"));
+	ComboIndex = 0;
+	WantsAttackAgain = false;
 }
 
 void UPrimaryAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -47,6 +50,10 @@ void UPrimaryAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		return;
 	}
 	
+	// Reseta estado interno ao iniciar
+	ComboIndex = 0;
+	WantsAttackAgain = false;
+	
 	StartBindingHandle = PlayerCharacter->InputRouter->BindAction(AttackAction, ETriggerEvent::Started,
 		this, &UPrimaryAttackAbility::EnableWantsPerformAttack);
 	
@@ -57,9 +64,11 @@ void UPrimaryAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-	
 	PlayerCharacter->InputRouter->UnbindByHandle(StartBindingHandle);
+	ComboIndex = 0;
+	WantsAttackAgain = false;
+	
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 void UPrimaryAttackAbility::PerformAttack()
@@ -107,20 +116,26 @@ void UPrimaryAttackAbility::PerformAttack()
 
 void UPrimaryAttackAbility::OnMontageCompleted()
 {
-	PlayerCharacter = Cast<ABaseCharacter>(GetCurrentActorInfo()->AvatarActor.Get());
-	EquipComponent = PlayerCharacter->GetEquipmentComponent();
-	GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	EquipSys = GI ? GI->GetSubsystem<UEquipmentSubsystem>() : nullptr;
-	if (WantsAttackAgain)
+	if (!EquipSys || !EquipComponent)
+	{
+		EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+		return;
+	}
+
+	UItemWeaponData* WeaponData = Cast<UItemWeaponData>(EquipSys->GetItemByID(EquipComponent->CurrentEquippedItemID));
+	const int32 MaxComboCount = WeaponData ? WeaponData->ItemAnimations.Num() : 0;
+
+	if (WantsAttackAgain && (ComboIndex + 1) < MaxComboCount)
 	{
 		ComboIndex++;
-		ComboIndex = (ComboIndex + 1) % EquipSys->GetItemByID(EquipComponent->CurrentEquippedItemID)->ItemAnimations.Num();
 		WantsAttackAgain = false;
 		PerformAttack();
 		return;
 	}
+
 	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }
+
 
 void UPrimaryAttackAbility::OnMontageInterrupted()
 {
@@ -162,27 +177,36 @@ void UPrimaryAttackAbility::PerformMeleeTrace()
 		true
 	);
 	
-	if (bHit && DamageEffectClass)
+	if (bHit)
 	{
 		UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
-		
+		TSet<AActor*> HitActors;
+
+		UItemWeaponData* WeaponData = Cast<UItemWeaponData>(EquipSys->GetItemByID(EquipComponent->CurrentEquippedItemID));
+		float DamageValue = WeaponData ? WeaponData->WeaponBaseDamage : 10.0f;
+
 		for (const FHitResult& Hit : HitResults)
 		{
 			AActor* HitActor = Hit.GetActor();
-			if (!HitActor)
+			if (!HitActor || HitActors.Contains(HitActor))
 			{
 				continue;
 			}
-			
+          
+			HitActors.Add(HitActor);
+          
 			UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitActor);
 			if (TargetASC && SourceASC)
 			{
 				FGameplayEffectContextHandle Context = SourceASC->MakeEffectContext();
-				Context.AddHitResult(Hit);
-				
+				Context.AddHitResult(Hit, true);
+             
 				FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageEffectClass, GetAbilityLevel(), Context);
 				if (SpecHandle.IsValid())
 				{
+					SpecHandle.Data.Get()->SetSetByCallerMagnitude(
+					   FGameplayTag::RequestGameplayTag(FName("Data.Damage")), DamageValue);
+                
 					SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 				}
 			}

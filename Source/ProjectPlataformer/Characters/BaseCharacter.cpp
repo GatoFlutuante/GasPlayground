@@ -10,6 +10,7 @@
 #include "Common/GameplayTaggedInputAction.h"
 #include "EnhancedInputSubsystems.h" 
 #include "EnhancedInputSubsystemInterface.h"
+#include "AttributeSets/VitalAttributeSet.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
@@ -181,9 +182,20 @@ void ABaseCharacter::Look(const FInputActionValue& Value)
 void ABaseCharacter::InitializeAttributes()
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (ASC && DefaultAttributesDataTable)
+	if (ASC && DefaultAttributesDataTables.Num() > 0)
 	{
-		ASC->InitStats(UCharacterStatsAttributeSet::StaticClass(), DefaultAttributesDataTable);
+		// 1. Mapeia e inicializa cada AttributeSet com sua respectiva Data Table
+		for (const TPair<TSubclassOf<UAttributeSet>, UDataTable*>& KVP : DefaultAttributesDataTables)
+		{
+			TSubclassOf<UAttributeSet> AttributeSetClass = KVP.Key;
+			UDataTable* DataTable = KVP.Value;
+
+			if (AttributeSetClass && DataTable) 
+			{
+				ASC->InitStats(AttributeSetClass, DataTable);
+			}
+		}
+		
 		GetCharacterMovement()->MaxWalkSpeed = ASC->GetNumericAttribute(UCharacterStatsAttributeSet::GetGroundSpeedAttribute());
 	}
 }
