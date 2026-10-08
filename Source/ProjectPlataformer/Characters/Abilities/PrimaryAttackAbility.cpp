@@ -92,7 +92,8 @@ void UPrimaryAttackAbility::PerformAttack()
 	
 	if (MontageTask)
 	{
-		MontageTask->OnCompleted.AddDynamic(this, &UPrimaryAttackAbility::OnMontageCompleted);
+		MontageTask->OnBlendOut.AddDynamic(this, &UPrimaryAttackAbility::OnMontageCompleted);
+		//MontageTask->OnCompleted.AddDynamic(this, &UPrimaryAttackAbility::OnMontageCompleted);
 		MontageTask->OnInterrupted.AddDynamic(this, &UPrimaryAttackAbility::OnMontageInterrupted);
 		MontageTask->OnCancelled.AddDynamic(this, &UPrimaryAttackAbility::OnMontageInterrupted);
 		
