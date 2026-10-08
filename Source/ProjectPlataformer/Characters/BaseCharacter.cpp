@@ -87,7 +87,11 @@ void ABaseCharacter::InitializeAbilitySystemActorInfo()
 			// OnRep_PlayerState. PlayerState and possession do not arrive in a
 			// guaranteed order on client and listen-server startup.
 			ASC->InitAbilityActorInfo(PS, this);
-			InitializeAttributes();
+			
+			if (HasAuthority())
+			{
+				InitializeAttributes();
+			}
 		}
 	}
 }
@@ -242,24 +246,37 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 void ABaseCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
+	
 	InitializeAbilitySystemActorInfo();
 	ApplyDefaultAbilitiesEffect();
+    
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->EquipItem("DefaultMelee");
+	}
+}
+
+void ABaseCharacter::PawnClientRestart()
+{
+	Super::PawnClientRestart();
 	
-	if (APlayerController* PC = Cast<APlayerController>(NewController))
+		
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (ULocalPlayer* LocalPlayer = PC->GetLocalPlayer())
 		{
 			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 			{
+				Subsystem->ClearAllMappings();
 				for (UInputMappingContext* Context : DefaultMappingContexts)
 				{
-					Subsystem->AddMappingContext(Context, 9999);
+					Subsystem->AddMappingContext(Context, 0);
 				}
 			}
 		}
 	}
 }
+
 void ABaseCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();

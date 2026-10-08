@@ -86,6 +86,9 @@ protected:
 	
 	virtual void PossessedBy(AController* NewController) override;
 	
+	// ⚡ Adicionado: Executado no Cliente quando o controlo do Pawn é confirmado
+	virtual void PawnClientRestart() override;
+	
 	virtual void OnRep_PlayerState() override;
 
 	void InitializeAbilitySystemActorInfo();
